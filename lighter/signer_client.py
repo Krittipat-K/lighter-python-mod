@@ -94,7 +94,7 @@ class SignerClient:
     DEFAULT_10_MIN_AUTH_EXPIRY = -1
     MINUTE = 60
 
-    def __init__(self, url, private_key, api_key_index, account_index):
+    def __init__(self, url, private_key, api_key_index, account_index,local_addr=None):
         chain_id = 304 if "mainnet" in url else 300
 
         # api_key_index=0 is generally used by frontend
@@ -106,7 +106,7 @@ class SignerClient:
         self.api_key_index = api_key_index
         self.account_index = account_index
         self.signer = _initialize_signer()
-        self.api_client = lighter.ApiClient(configuration=Configuration(host=url))
+        self.api_client = lighter.ApiClient(configuration=Configuration(host=url,local_addr=local_addr))
         self.tx_api = lighter.TransactionApi(self.api_client)
         self.create_client()
 

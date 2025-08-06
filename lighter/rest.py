@@ -67,12 +67,19 @@ class RESTClientObject:
         if not configuration.verify_ssl:
             ssl_context.check_hostname = False
             ssl_context.verify_mode = ssl.CERT_NONE
+            
+        if getattr(configuration, "source_ip", None):
 
-        connector = aiohttp.TCPConnector(
-            limit=maxsize,
-            ssl=ssl_context
-        )
-
+            connector = aiohttp.TCPConnector(
+                limit=maxsize,
+                ssl=ssl_context
+                local_addr=local_addr
+            )
+        else:
+            connector = aiohttp.TCPConnector(
+                limit=maxsize,
+                ssl=ssl_context
+            )
         self.proxy = configuration.proxy
         self.proxy_headers = configuration.proxy_headers
 

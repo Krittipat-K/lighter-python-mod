@@ -91,6 +91,7 @@ conf = lighter.Configuration(
                  ignore_operation_servers=False,
                  ssl_ca_cert=None,
                  retries=None,
+                 local_addr=None,
                  *,
                  debug: Optional[bool] = None
                  ) -> None:
@@ -212,6 +213,9 @@ conf = lighter.Configuration(
 
         self.date_format = "%Y-%m-%d"
         """date format
+        """
+        self.local_addr = local_addr
+        """Local address to bind the socket to.
         """
 
     def __deepcopy__(self, memo):
