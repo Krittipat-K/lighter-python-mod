@@ -69,10 +69,10 @@ class RESTClientObject:
             ssl_context.verify_mode = ssl.CERT_NONE
             
         if getattr(configuration, "source_ip", None):
-
+            local_addr = configuration.local_addr or configuration.source_ip
             connector = aiohttp.TCPConnector(
                 limit=maxsize,
-                ssl=ssl_context
+                ssl=ssl_context,
                 local_addr=local_addr
             )
         else:
