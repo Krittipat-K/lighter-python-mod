@@ -4,6 +4,9 @@ import platform
 import logging
 import os
 import time
+import shutil
+import tempfile
+import uuid
 
 from eth_account import Account
 from eth_account.messages import encode_defunct
@@ -43,6 +46,35 @@ def _initialize_signer():
         raise Exception(
             f"Unsupported platform/architecture: {platform.system()}/{platform.machine()} only supports Linux(x86) and Darwin(arm64)"
         )
+
+def _initialize_signer_isolated(unique_id: str):
+    is_linux = platform.system() == "Linux"
+    is_mac = platform.system() == "Darwin"
+    is_x64 = platform.machine().lower() in ("amd64", "x86_64")
+    is_arm = platform.machine().lower() == "arm64"
+
+    current_file_directory = os.path.dirname(os.path.abspath(__file__))
+    path_to_signer_folders = os.path.join(current_file_directory, "signers")
+
+    if is_arm and is_mac:
+        src = os.path.join(path_to_signer_folders, "signer-arm64.dylib")
+        ext = ".dylib"
+    elif is_linux and is_x64:
+        src = os.path.join(path_to_signer_folders, "signer-amd64.so")
+        ext = ".so"
+    else:
+        raise Exception(f"Unsupported platform/arch: {platform.system()}/{platform.machine()}")
+
+    # สร้างสำเนาไฟล์ชั่วคราวชื่อไม่ซ้ำ เพื่อบังคับให้ dynamic loader แยก instance
+    tmpdir = os.path.join(tempfile.gettempdir(), "lighter_signers")
+    os.makedirs(tmpdir, exist_ok=True)
+    dst = os.path.join(tmpdir, f"signer-{unique_id}-{uuid.uuid4().hex}{ext}")
+    shutil.copyfile(src, dst)
+
+    # โหลด .so ที่สำเนานี้
+    lib = ctypes.CDLL(dst)  # RTLD_LOCAL เป็นค่า default
+    lib._loaded_from = dst   # กัน GC และไว้ลบทีหลังถ้าต้องการ
+    return lib
 
 
 def create_api_key(seed=""):
@@ -105,7 +137,8 @@ class SignerClient:
         self.chain_id = chain_id
         self.api_key_index = api_key_index
         self.account_index = account_index
-        self.signer = _initialize_signer()
+        # self.signer = _initialize_signer()
+        self.signer = _initialize_signer_isolated(unique_id=f"a{account_index}-k{api_key_index}")
         self.api_client = lighter.ApiClient(configuration=Configuration(host=url,local_addr=local_addr))
         self.tx_api = lighter.TransactionApi(self.api_client)
         self.create_client()
